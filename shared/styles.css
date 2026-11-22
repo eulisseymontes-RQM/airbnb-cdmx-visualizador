@@ -1287,3 +1287,33 @@ html, body {
   font-size: 9px;
   color: var(--ink-muted);
 }
+
+/* Extensiones para Pregunta 5 (selector 2 columnas, nota metodológica y host dominante) */
+.segmented.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.note-cite {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.row-dom-host td {
+  background: #fffbeb;
+}
+
+.dom-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
