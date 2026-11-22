@@ -1024,7 +1024,7 @@ window.Pregunta1 = (() => {
         <span class="eyebrow">Pregunta 1 · Distribución y alcaldías</span>
         <h1>Precio por noche, modalidades y brechas por alcaldía</h1>
         <p class="subtitle">
-          Réplica interactiva de la sección 4.1 calculada en vivo desde <code>shared/datos_analisis.csv</code> (mediana, cuartiles y escala logarítmica).
+          Comparación del precio típico por noche entre modalidades y alcaldías de la CDMX (mediana y rango intercuartílico en 27,820 anuncios activos).
         </p>
       </div>
 
