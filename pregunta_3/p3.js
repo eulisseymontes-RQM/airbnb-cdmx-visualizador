@@ -262,8 +262,8 @@ window.Pregunta3 = (() => {
     const H = pad.top + rows.length * rowH + pad.bottom;
     const plotW = W - pad.left - pad.right;
 
-    const minV = Math.min(240, ...rows.map((r) => r.q1) * 0.9);
-    const maxV = Math.max(7000, ...rows.map((r) => r.q3) * 1.12);
+    const minV = Math.min(240, ...rows.map((r) => r.q1 * 0.9));
+    const maxV = Math.max(7000, ...rows.map((r) => r.q3 * 1.12));
     const logMin = Math.log10(minV);
     const logMax = Math.log10(maxV);
     const xOf = (v) => pad.left + ((Math.log10(v) - logMin) / (logMax - logMin)) * plotW;
@@ -425,8 +425,9 @@ window.Pregunta3 = (() => {
     const H = pad.top + list.length * rowH + pad.bottom;
     const plotW = W - pad.left - pad.right;
 
-    const minR = Math.min(-0.22, ...list.map((d) => d.rho) - 0.06);
-    const maxR = Math.max(0.62, ...list.map((d) => d.rho) + 0.08);
+    const rhos = list.map((d) => d.rho).filter(Number.isFinite);
+    const minR = Math.min(-0.22, ...rhos.map((v) => v - 0.06));
+    const maxR = Math.max(0.62, ...rhos.map((v) => v + 0.08));
     const xOf = (v) => pad.left + ((v - minR) / (maxR - minR)) * plotW;
     const x0 = xOf(0);
 
