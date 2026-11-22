@@ -991,3 +991,130 @@ html, body {
   color: var(--primary);
   font-weight: 600;
 }
+
+/* Panel lateral extendido para pestañas analíticas donde el mapa pasa a segundo plano */
+.side-panel.wide {
+  width: min(670px, 56vw);
+}
+
+.kpi-grid.kpi-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1120px) {
+  .kpi-grid.kpi-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Botones en el mapa para cambiar variable de color de los puntos */
+.map-color-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.map-pill-btn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: #ffffff;
+  color: var(--ink-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.map-pill-btn:hover {
+  background: #f8fafc;
+  color: var(--ink);
+}
+
+.map-pill-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Figura 14: dos gráficas lado a lado */
+.fig14-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .fig14-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fig14-panel {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 6px 4px 6px;
+}
+
+.fig14-panel-title {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.dot-hollow {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid #475569;
+  background: #ffffff;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Mini pestañas y celdas de tabla con alerta n < 30 */
+.mini-tabs {
+  display: inline-flex;
+  gap: 3px;
+  background: #f1f5f9;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.mini-tab-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mini-tab-btn.active {
+  background: #ffffff;
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.low-n-cell {
+  background: #fffbeb;
+}
+
+.cell-sub {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 400;
+  color: var(--ink-muted);
+}
