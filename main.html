@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airbnb CDMX · Resultados Analíticos Interactivos</title>
+
+  <!-- Tipografía editorial -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet (mapa real OpenStreetMap / CartoDB) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- PapaParse (lectura rápida de CSV) y Chart.js (gráficas sobrias) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <!-- Estilos compartidos -->
+  <link rel="stylesheet" href="shared/styles.css" />
+</head>
+<body>
+  <!-- Barra superior de navegación (5 preguntas) -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <div>
+        <div class="brand-title">Airbnb CDMX</div>
+        <div class="brand-sub">Panel de conclusiones · Módulo 1</div>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs-nav" aria-label="Preguntas del proyecto">
+      <button class="tab-btn" data-tab="p1"><span class="tab-num">01</span> Alcaldías y precios</button>
+      <button class="tab-btn active" data-tab="p2"><span class="tab-num">02</span> Distancia al centro</button>
+      <button class="tab-btn" data-tab="p3"><span class="tab-num">03</span> Capacidad y huésped</button>
+      <button class="tab-btn" data-tab="p4"><span class="tab-num">04</span> Precio y calificación</button>
+      <button class="tab-btn" data-tab="p5"><span class="tab-num">05</span> Comercial vs. particular</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <button id="btn-toggle-panel" class="ghost-btn" title="Ocultar o mostrar panel lateral">
+        Ocultar panel
+      </button>
+    </div>
+  </header>
+
+  <!-- Área principal: mapa real de fondo + panel lateral flotante -->
+  <main class="workspace">
+    <div id="map" aria-label="Mapa interactivo real de la Ciudad de México"></div>
+
+    <!-- Controles discretos del mapa base (transparencia, máscara CDMX y encuadre) -->
+    <section class="map-controls" aria-label="Controles del mapa base">
+      <div class="control-row">
+        <label for="tile-opacity">Opacidad mapa CDMX</label>
+        <span id="tile-opacity-val" class="mono">68%</span>
+      </div>
+      <input id="tile-opacity" type="range" min="15" max="100" value="68" />
+
+      <div class="map-toggles">
+        <label><input type="checkbox" id="chk-cdmx-mask" checked /> Remarcar solo CDMX</label>
+        <label><input type="checkbox" id="chk-cdmx-borders" checked /> Límites de alcaldías</label>
+      </div>
+      <div id="cdmx-geo-status" class="geo-status" hidden>
+        Guarda <code>shared/cdmx_alcaldias.geojson</code> para activar el contorno oficial.
+      </div>
+
+      <div class="control-buttons">
+        <button id="btn-reset-view" class="mini-btn">Centrar CDMX</button>
+        <button id="btn-toggle-style" class="mini-btn">Base: Claro sobrio</button>
+      </div>
+      <div id="map-legend" class="map-legend"></div>
+    </section>
+
+    <!-- Panel analítico lateral -->
+    <aside class="side-panel" id="side-panel">
+      <div id="panel-content" class="panel-content">
+        <div class="loading-box">Cargando módulo analítico...</div>
+      </div>
+    </aside>
+  </main>
+
+<!-- Módulos compartidos -->
+  <script src="shared/stats.js"></script>
+  <script src="shared/data_store.js"></script>
+  <script src="shared/mapa_base.js"></script>
+
+  <!-- Orquestador de pestañas (no requiere editarse al agregar nuevas preguntas) -->
+  <script>
+    window.AppShell = (() => {
+      const registry = {};
+      let activeKey = null;
+
+      function register(key, moduleObj) {
+        registry[key] = moduleObj;
+      }
+
+      function renderPlaceholder(key, label) {
+        const panel = document.getElementById("panel-content");
+        const legend = document.getElementById("map-legend");
+        window.MapaBase.clearOverlays();
+        window.MapaBase.clearChoropleth();
+        window.MapaBase.setPoints([], {});
+        legend.innerHTML = "";
+        panel.innerHTML = `
+          <div class="section-header">
+            <span class="eyebrow">Módulo pendiente</span>
+            <h1>${label}</h1>
+            <p class="subtitle">
+              Esta pestaña está lista para enchufar <code>pregunta_${key.slice(1)}/p${key.slice(1)}.js</code>
+              consumiendo automáticamente <code>shared/datos_analisis.csv</code>.
+            </p>
+          </div>
+          <div class="callout">
+            Cuando construyamos esta pregunta, solo agregaremos su archivo en su carpeta y una línea <code>&lt;script&gt;</code> en <code>main.html</code>.
+          </div>
+        `;
+      }
+
+      async function activate(key) {
+        if (activeKey === key) return;
+        if (activeKey && registry[activeKey] && typeof registry[activeKey].unmount === "function") {
+          registry[activeKey].unmount();
+        }
+
+        // Limpieza total entre pestañas para evitar fugas visuales
+        window.MapaBase.clearOverlays();
+        window.MapaBase.clearChoropleth();
+        window.MapaBase.setPoints([], {});
+        document.getElementById("map-legend").innerHTML = "";
+
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.tab === key);
+        });
+
+        activeKey = key;
+        const mod = registry[key];
+        if (!mod) {
+          const btn = document.querySelector(`.tab-btn[data-tab="${key}"]`);
+          renderPlaceholder(key, btn ? btn.textContent.trim() : key);
+          return;
+        }
+        await mod.mount({
+          panelEl: document.getElementById("panel-content"),
+          legendEl: document.getElementById("map-legend"),
+          mapApi: window.MapaBase,
+          store: window.DataStore,
+        });
+      }
+
+      function init() {
+        window.MapaBase.init("map");
+
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.addEventListener("click", () => activate(btn.dataset.tab));
+        });
+
+        const sidePanel = document.getElementById("side-panel");
+        const toggleBtn = document.getElementById("btn-toggle-panel");
+        toggleBtn.addEventListener("click", () => {
+          const collapsed = sidePanel.classList.toggle("collapsed");
+          toggleBtn.textContent = collapsed ? "Mostrar panel" : "Ocultar panel";
+        });
+
+        // Arranca en P1 si ya existe; si no, en P2
+        activate(registry.p1 ? "p1" : "p2");
+      }
+
+      return { register, activate, init };
+    })();
+
+    document.addEventListener("DOMContentLoaded", () => window.AppShell.init());
+  </script>
+
+  <!-- MÓDULOS POR PREGUNTA -->
+  <script src="pregunta_1/p1.js"></script>
+  <script src="pregunta_2/p2.js"></script>
+</body>
+</html>
