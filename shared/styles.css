@@ -1317,3 +1317,49 @@ html, body {
   color: #92400e;
   border: 1px solid #f59e0b;
 }
+
+/* Botón de modo daltonismo en barra superior y variables Okabe-Ito */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.theme-btn.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+:root[data-theme="cvd"] {
+  --primary: #0072b2;
+  --primary-soft: #ebf4fa;
+  --accent: #d55e00;
+  --accent-soft: #fdf2eb;
+  --pine: #009e73;
+  --ochre: #334155;
+}
+
+:root[data-theme="cvd"] .dashed-sample {
+  border-top-color: #334155;
+}
+
+:root[data-theme="cvd"] .svg-row-lbl.is-low-n {
+  fill: #475569;
+}
+
+:root[data-theme="cvd"] .hm-cell.hm-low-n {
+  border-color: #334155;
+}
+
+:root[data-theme="cvd"] .row-dom-host td {
+  background: #ecfdf5;
+}
+
+:root[data-theme="cvd"] .dom-badge {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #009e73;
+}

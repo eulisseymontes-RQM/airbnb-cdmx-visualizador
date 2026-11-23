@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Leaflet (mapa real OpenStreetMap / CartoDB) -->
+  <!-- Leaflet (mapa real OpenStreetMap / Esri sin API key) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="shared/styles.css" />
 </head>
 <body>
-  <!-- Barra superior de navegación (5 preguntas) -->
+  <!-- Barra superior de navegación (5 preguntas + botón daltonismo) -->
   <header class="topbar">
     <div class="brand">
       <span class="brand-dot"></span>
@@ -33,14 +33,18 @@
     </div>
 
     <nav class="tabs" id="tabs-nav" aria-label="Preguntas del proyecto">
-      <button class="tab-btn" data-tab="p1"><span class="tab-num">01</span> Alcaldías y precios</button>
-      <button class="tab-btn active" data-tab="p2"><span class="tab-num">02</span> Distancia al centro</button>
-      <button class="tab-btn" data-tab="p3"><span class="tab-num">03</span> Capacidad y huésped</button>
+      <button class="tab-btn active" data-tab="p1"><span class="tab-num">01</span> Alcaldías y precios</button>
+      <button class="tab-btn" data-tab="p2"><span class="tab-num">02</span> Distancia al centro</button>
+      <button class="tab-btn" data-tab="p3"><span class="tab-num">03</span> Características</button>
       <button class="tab-btn" data-tab="p4"><span class="tab-num">04</span> Precio y calificación</button>
       <button class="tab-btn" data-tab="p5"><span class="tab-num">05</span> Comercial vs. particular</button>
     </nav>
 
     <div class="topbar-actions">
+      <button id="btn-toggle-theme" class="ghost-btn theme-btn active" aria-pressed="true"
+              title="Alternar entre paleta accesible para daltonismo (Okabe-Ito) y paleta editorial">
+        Daltonismo: ON
+      </button>
       <button id="btn-toggle-panel" class="ghost-btn" title="Ocultar o mostrar panel lateral">
         Ocultar panel
       </button>
@@ -51,7 +55,7 @@
   <main class="workspace">
     <div id="map" aria-label="Mapa interactivo real de la Ciudad de México"></div>
 
-    <!-- Controles discretos del mapa base (transparencia, máscara CDMX y encuadre) -->
+    <!-- Controles discretos del mapa base -->
     <section class="map-controls" aria-label="Controles del mapa base">
       <div class="control-row">
         <label for="tile-opacity">Opacidad mapa CDMX</label>
@@ -82,12 +86,13 @@
     </aside>
   </main>
 
-<!-- Módulos compartidos -->
+  <!-- Módulos compartidos -->
   <script src="shared/stats.js"></script>
+  <script src="shared/theme.js"></script>
   <script src="shared/data_store.js"></script>
   <script src="shared/mapa_base.js"></script>
 
-  <!-- Orquestador de pestañas (no requiere editarse al agregar nuevas preguntas) -->
+  <!-- Orquestador de pestañas -->
   <script>
     window.AppShell = (() => {
       const registry = {};
@@ -109,12 +114,8 @@
             <span class="eyebrow">Módulo pendiente</span>
             <h1>${label}</h1>
             <p class="subtitle">
-              Esta pestaña está lista para enchufar <code>pregunta_${key.slice(1)}/p${key.slice(1)}.js</code>
-              consumiendo automáticamente <code>shared/datos_analisis.csv</code>.
+              Esta pestaña está lista para enchufar <code>pregunta_${key.slice(1)}/p${key.slice(1)}.js</code>.
             </p>
-          </div>
-          <div class="callout">
-            Cuando construyamos esta pregunta, solo agregaremos su archivo en su carpeta y una línea <code>&lt;script&gt;</code> en <code>main.html</code>.
           </div>
         `;
       }
@@ -125,7 +126,6 @@
           registry[activeKey].unmount();
         }
 
-        // Limpieza total entre pestañas para evitar fugas visuales
         window.MapaBase.clearOverlays();
         window.MapaBase.clearChoropleth();
         window.MapaBase.setPoints([], {});
@@ -150,8 +150,19 @@
         });
       }
 
+      async function refreshActive() {
+        if (!activeKey) return;
+        const current = activeKey;
+        if (registry[current] && typeof registry[current].unmount === "function") {
+          registry[current].unmount();
+        }
+        activeKey = null;
+        await activate(current);
+      }
+
       function init() {
         window.MapaBase.init("map");
+        if (window.Theme) window.Theme.init();
 
         document.querySelectorAll(".tab-btn").forEach((btn) => {
           btn.addEventListener("click", () => activate(btn.dataset.tab));
@@ -164,11 +175,10 @@
           toggleBtn.textContent = collapsed ? "Mostrar panel" : "Ocultar panel";
         });
 
-        // Arranca en P1 si ya existe; si no, en P2
         activate(registry.p1 ? "p1" : "p2");
       }
 
-      return { register, activate, init };
+      return { register, activate, refreshActive, init };
     })();
 
     document.addEventListener("DOMContentLoaded", () => window.AppShell.init());

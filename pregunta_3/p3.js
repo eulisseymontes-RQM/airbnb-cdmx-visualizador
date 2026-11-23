@@ -38,10 +38,10 @@ window.Pregunta3 = (() => {
 
   const state = {
     act: 1,
-    mapColorBy: "modalidad", // "modalidad" | "capacidad" | "recamaras" | "camas"
-    fig14Filter: "all",      // "all" | "n30" | "comparables"
-    capTableMetric: "total", // "total" | "huesped" | "n"
-    spearmanScope: "todos",  // "todos" | "completo" | "privada"
+    mapColorBy: "modalidad",
+    fig14Filter: "all",
+    capTableMetric: "total",
+    spearmanScope: "todos",
   };
 
   function lerpColor(t, palette) {
@@ -90,7 +90,6 @@ window.Pregunta3 = (() => {
   function computeMetrics(rows) {
     const S = window.Stats;
 
-    // 4.3.1: Cuartiles por modalidad ordenados por mediana descendente
     const modGroups = {};
     rows.forEach((r) => {
       if (!modGroups[r.modalidad]) modGroups[r.modalidad] = [];
@@ -102,7 +101,6 @@ window.Pregunta3 = (() => {
     const modByName = {};
     modList.forEach((m) => (modByName[m.modalidad] = m));
 
-    // 4.3.2: Capacidad 1 a 8 × modalidad (anuncios, mediana_precio, mediana_por_huesped)
     const capData = {};
     MODALIDADES_ORDEN.forEach((m) => {
       capData[m] = {};
@@ -134,7 +132,6 @@ window.Pregunta3 = (() => {
       });
     });
 
-    // 4.3.3: Correlaciones de Spearman en 3 alcances (Todos / Alojamiento completo / Habitación privada)
     const rowsComp = rows.filter((r) => r.modalidad === "Alojamiento completo");
     const rowsPriv = rows.filter((r) => r.modalidad === "Habitación privada");
     const spearmanByScope = {
@@ -252,7 +249,6 @@ window.Pregunta3 = (() => {
     });
   }
 
-  // --- SVG Acto 1: Intervalos Q1–Q3 y mediana por modalidad (fiel a 4.3.1) ---
   function buildModalityIntervalSVG() {
     const S = window.Stats;
     const rows = metrics.modList;
@@ -310,7 +306,6 @@ window.Pregunta3 = (() => {
     `;
   }
 
-  // --- SVG Acto 2: Figura 14 (Precio total | Precio por huésped, capacidades 1 a 8) ---
   function niceTicks(maxVal, count = 5) {
     if (!Number.isFinite(maxVal) || maxVal <= 0) return { top: 1000, ticks: [0, 500, 1000] };
     const roughStep = maxVal / count;
@@ -331,16 +326,44 @@ window.Pregunta3 = (() => {
 
   function buildLinePanelSVG(metricKey, title, yAxisLabel) {
     const S = window.Stats;
+    const usePatterns = window.Theme && window.Theme.isCVD();
     const W = 300;
     const H = 228;
     const pad = { top: 24, right: 12, bottom: 30, left: 50 };
     const plotW = W - pad.left - pad.right;
     const plotH = H - pad.top - pad.bottom;
 
+    const LINE_DASH = {
+      "Alojamiento completo": "",
+      "Habitación privada": "6 3",
+      "Habitación compartida": "2 2.5",
+      "Habitación de hotel": "8 3 2 3",
+    };
+    const MARKER_SHAPE = {
+      "Alojamiento completo": "circle",
+      "Habitación privada": "square",
+      "Habitación compartida": "triangle",
+      "Habitación de hotel": "diamond",
+    };
+
+    const drawMarker = (shape, cx, cy, fill, stroke, sw, tooltip) => {
+      if (shape === "square") {
+        return `<rect x="${(cx - 3.3).toFixed(1)}" y="${(cy - 3.3).toFixed(1)}" width="6.6" height="6.6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"><title>${tooltip}</title></rect>`;
+      }
+      if (shape === "triangle") {
+        const pts = `${cx.toFixed(1)},${(cy - 4.4).toFixed(1)} ${(cx - 4.1).toFixed(1)},${(cy + 3.4).toFixed(1)} ${(cx + 4.1).toFixed(1)},${(cy + 3.4).toFixed(1)}`;
+        return `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"><title>${tooltip}</title></polygon>`;
+      }
+      if (shape === "diamond") {
+        const pts = `${cx.toFixed(1)},${(cy - 4.5).toFixed(1)} ${(cx + 4.2).toFixed(1)},${cy.toFixed(1)} ${cx.toFixed(1)},${(cy + 4.5).toFixed(1)} ${(cx - 4.2).toFixed(1)},${cy.toFixed(1)}`;
+        return `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"><title>${tooltip}</title></polygon>`;
+      }
+      return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.8" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"><title>${tooltip}</title></circle>`;
+    };
+
     const activeMods =
       state.fig14Filter === "comparables" ? COMPARABLES : MODALIDADES_ORDEN;
 
-    // Construye series visibles según el filtro de la Figura 14
     const series = activeMods.map((m) => {
       const pts = [];
       CAPACIDADES.forEach((c) => {
@@ -379,23 +402,21 @@ window.Pregunta3 = (() => {
       .map((s) => {
         if (!s.pts.length) return "";
         const polyPts = s.pts.map((p) => `${xOf(p.cap).toFixed(1)},${yOf(p.val).toFixed(1)}`).join(" ");
+        const dash = usePatterns && LINE_DASH[s.modalidad] ? `stroke-dasharray="${LINE_DASH[s.modalidad]}"` : "";
+        const shape = usePatterns ? MARKER_SHAPE[s.modalidad] : "circle";
+
         const dots = s.pts
           .map((p) => {
-            const cx = xOf(p.cap).toFixed(1);
-            const cy = yOf(p.val).toFixed(1);
             const fill = p.lowN ? "#FFFFFF" : s.color;
             const stroke = p.lowN ? s.color : "#FFFFFF";
             const sw = p.lowN ? 2.0 : 1.1;
             const warn = p.lowN ? " (⚠ n < 30)" : "";
-            return `
-              <circle cx="${cx}" cy="${cy}" r="3.8" fill="${fill}" stroke="${stroke}" stroke-width="${sw}">
-                <title>${s.modalidad} · ${p.cap} huésped(es)&#10;${title}: ${S.fmtMXN(p.val)}&#10;Anuncios: n = ${S.fmtInt(p.n)}${warn}</title>
-              </circle>
-            `;
+            const tip = `${s.modalidad} · ${p.cap} huésped(es)\n${title}: ${S.fmtMXN(p.val)}\nAnuncios: n = ${S.fmtInt(p.n)}${warn}`;
+            return drawMarker(shape, xOf(p.cap), yOf(p.val), fill, stroke, sw, tip);
           })
           .join("");
         return `
-          <polyline fill="none" stroke="${s.color}" stroke-width="2" points="${polyPts}" opacity="0.9" />
+          <polyline fill="none" stroke="${s.color}" stroke-width="2.1" ${dash} points="${polyPts}" opacity="0.92" />
           ${dots}
         `;
       })
@@ -416,7 +437,6 @@ window.Pregunta3 = (() => {
     `;
   }
 
-  // --- SVG Acto 3: Correlaciones de Spearman (fiel a 4.3.3) ---
   function buildSpearmanSVG(list) {
     const S = window.Stats;
     const rowH = 30;
@@ -470,7 +490,7 @@ window.Pregunta3 = (() => {
         ${bars}
       </svg>
       <div class="svg-footnote">
-        Coeficiente de correlación de Spearman (ρ) frente al precio por noche · Azul: asociación positiva · Terracota: asociación negativa.
+        Coeficiente de correlación de Spearman (ρ) frente al precio por noche · Azul: asociación positiva · Naranja/terracota: asociación negativa.
       </div>
     `;
   }
@@ -479,7 +499,6 @@ window.Pregunta3 = (() => {
     const S = window.Stats;
     const body = document.getElementById("p3-act-body");
 
-    // ---------------- ACTO 1: Precio por modalidad (4.3.1) ----------------
     if (state.act === 1) {
       const comp = metrics.modByName["Alojamiento completo"];
       const priv = metrics.modByName["Habitación privada"];
@@ -550,7 +569,6 @@ window.Pregunta3 = (() => {
       return;
     }
 
-    // ---------------- ACTO 2: Capacidad 1 a 8 — Figura 14 (4.3.2) ----------------
     if (state.act === 2) {
       const pc = metrics.porCapacidad;
       const c2 = pc["Alojamiento completo"][2];
@@ -604,7 +622,7 @@ window.Pregunta3 = (() => {
           </div>
 
           <div class="svg-footnote">
-            Nota: el precio por huésped supone ocupación a capacidad máxima. Los círculos huecos señalan combinaciones con menos de 30 anuncios.
+            Nota: el precio por huésped supone ocupación a capacidad máxima. Los marcadores huecos señalan combinaciones con menos de 30 anuncios.
           </div>
         </div>
 
@@ -657,7 +675,6 @@ window.Pregunta3 = (() => {
       return;
     }
 
-    // ---------------- ACTO 3: Correlaciones de Spearman y respuesta (4.3.3–4.3.4) ----------------
     const scopeObj = metrics.spearmanByScope[state.spearmanScope];
     const byKey = {};
     scopeObj.list.forEach((d) => (byKey[d.key] = d));

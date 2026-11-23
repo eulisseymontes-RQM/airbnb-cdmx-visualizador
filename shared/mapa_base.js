@@ -26,7 +26,6 @@ window.MapaBase = (() => {
   let showMask = true;
   let showBorders = true;
 
-  // Estado de capa coroplética activa + un único tooltip compartido
   let choroConfig = null;
   let choroLayersByKey = {};
   let hoveredKey = null;
@@ -79,7 +78,7 @@ window.MapaBase = (() => {
     },
   ];
 
-  // Capa Canvas con animación de zoom continua (sin parpadeo)
+  // Capa Canvas con animación de zoom continua (sin parpadeo) y soporte de tema daltonismo
   const FastPointsLayer = L.Layer.extend({
     initialize: function () {
       this._points = [];
@@ -195,7 +194,8 @@ window.MapaBase = (() => {
         if (cx < -8 || cy < -8 || cx > w + 8 || cy > h + 8) continue;
 
         ctx.globalAlpha = this._alphaFn(p);
-        ctx.fillStyle = this._colorFn(p);
+        const rawColor = this._colorFn(p);
+        ctx.fillStyle = window.Theme ? window.Theme.mapColor(rawColor) : rawColor;
         const r = this._radiusFn(p) * zoomScale;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -317,7 +317,6 @@ window.MapaBase = (() => {
     }
   }
 
-  // Contornos de hover y selección en capa separada sin interacción (evita mover nodos SVG)
   function renderChoroHighlights() {
     if (!highlightGroup) return;
     highlightGroup.clearLayers();
@@ -352,12 +351,26 @@ window.MapaBase = (() => {
     }
   }
 
+  function adaptChoroStyle(st) {
+    if (!st || !window.Theme || !window.Theme.isCVD()) return st;
+    const out = { ...st };
+    if (out.fillColor) out.fillColor = window.Theme.mapColor(out.fillColor);
+    if (out.color) {
+      out.color = out.dashArray
+        ? window.Theme.mapCautionColor(out.color)
+        : window.Theme.mapColor(out.color);
+    }
+    return out;
+  }
+
   function refreshChoroplethStyles() {
     if (!choroConfig) return;
     Object.entries(choroLayersByKey).forEach(([key, entry]) => {
       const isSelected = selectedKey === key;
       const isHovered = hoveredKey === key;
-      entry.layer.setStyle(choroConfig.styleFn(key, entry.rawName, { isSelected, isHovered }));
+      entry.layer.setStyle(
+        adaptChoroStyle(choroConfig.styleFn(key, entry.rawName, { isSelected, isHovered }))
+      );
     });
     renderChoroHighlights();
   }
@@ -391,10 +404,12 @@ window.MapaBase = (() => {
       style: (feature) => {
         const rawName = extractFeatureName(feature);
         const key = window.DataStore.normalizeKey(rawName);
-        return choroConfig.styleFn(key, rawName, {
-          isSelected: selectedKey === key,
-          isHovered: hoveredKey === key,
-        });
+        return adaptChoroStyle(
+          choroConfig.styleFn(key, rawName, {
+            isSelected: selectedKey === key,
+            isHovered: hoveredKey === key,
+          })
+        );
       },
       onEachFeature: (feature, layer) => {
         const rawName = extractFeatureName(feature);
@@ -505,7 +520,6 @@ window.MapaBase = (() => {
       zoomControl: true,
     });
 
-    // Jerarquía: tiles (200) < máscara (380) < coroplético (390) < contornos hover/sel (395) < puntos (400) < anillos/ejes (460)
     const maskPane = map.createPane("maskPane");
     maskPane.style.zIndex = 380;
     maskPane.style.pointerEvents = "none";
@@ -533,7 +547,6 @@ window.MapaBase = (() => {
     canvasLayer = new FastPointsLayer().addTo(map);
     overlayGroup = L.layerGroup().addTo(map);
 
-    // Oculta siempre el tooltip al mover el mapa o salir hacia el panel lateral
     map.on("movestart zoomstart", hideChoroTooltip);
     map.getContainer().addEventListener("mouseleave", () => {
       hideChoroTooltip();
