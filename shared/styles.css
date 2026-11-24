@@ -1363,3 +1363,51 @@ html, body {
   color: #065f46;
   border-color: #009e73;
 }
+
+/* Extensiones visuales para Pregunta 2 (rejillas 2x2, leyenda de intervalos y acordeón) */
+.p2-dual-grid,
+.p2-facets-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .p2-dual-grid,
+  .p2-facets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bar-sample {
+  display: inline-block;
+  width: 14px;
+  height: 5px;
+  border-radius: 3px;
+  background: #4e79a7;
+  opacity: 0.55;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.diamond-sample {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #b84a39;
+  transform: rotate(45deg);
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+:root[data-theme="cvd"] .bar-sample {
+  background: #56b4e9;
+}
+
+:root[data-theme="cvd"] .diamond-sample {
+  background: #d55e00;
+}
+
+.p2-filters-details summary::-webkit-details-marker {
+  display: none;
+}
